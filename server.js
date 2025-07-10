@@ -34,12 +34,12 @@ app.post('/api/contact', async(req, res) => {
         consent
     } = req.body;
 
-    // Replace optional missing fields with 'NA'
-    firstName = firstName || 'NA';
-    lastName = lastName || 'NA';
-    company = company || 'NA';
-    email = email || 'NA';
-    message = message || 'NA';
+    // Replace missing or empty optional fields with 'NA'
+    firstName = (!firstName || firstName.trim() === '') ? 'NA' : firstName.trim();
+    lastName = (!lastName || lastName.trim() === '') ? 'NA' : lastName.trim();
+    company = (!company || company.trim() === '') ? 'NA' : company.trim();
+    email = (!email || email.trim() === '') ? 'NA' : email.trim();
+    message = (!message || message.trim() === '') ? 'NA' : message.trim();
     consent = consent ? 'Yes' : 'No';
 
     try {
