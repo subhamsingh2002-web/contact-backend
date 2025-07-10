@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const ExcelJS = require('exceljs');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -58,6 +59,53 @@ app.post('/api/contact', async(req, res) => {
         });
     } catch (err) {
         res.status(500).json({ message: 'Database error: ' + err.message });
+    }
+});
+
+// GET: Export contact form submissions to Excel
+app.get('/api/contact/export', async(req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM contact_form ORDER BY id ASC');
+        const rows = result.rows;
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Contact Submissions');
+
+        worksheet.columns = [
+            { header: 'ID', key: 'id', width: 10 },
+            { header: 'First Name', key: 'first_name', width: 20 },
+            { header: 'Last Name', key: 'last_name', width: 20 },
+            { header: 'Company', key: 'company', width: 25 },
+            { header: 'Email', key: 'email', width: 30 },
+            { header: 'Message', key: 'message', width: 40 },
+            { header: 'Consent', key: 'consent', width: 10 },
+            { header: 'Created At', key: 'created_at', width: 30, style: { numFmt: 'yyyy-mm-dd hh:mm:ss' } }
+        ];
+
+        rows.forEach(row => {
+            const istDate = new Date(row.created_at);
+            istDate.setHours(istDate.getHours() + 5);
+            istDate.setMinutes(istDate.getMinutes() + 30);
+
+            worksheet.addRow({
+                ...row,
+                created_at: istDate
+            });
+        });
+
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader(
+            'Content-Disposition',
+            'attachment; filename="contact_submissions.xlsx"'
+        );
+
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (err) {
+        res.status(500).json({ message: 'Export error: ' + err.message });
     }
 });
 
